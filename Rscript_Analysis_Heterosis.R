@@ -1,4 +1,3 @@
-
 #===========================================
 #===========================================
 #
@@ -15,7 +14,7 @@
 
 # Euclidian phenotypic distance
 # --------------------------------------------------
-tabtot <- read.csv("ArabidoPheno_Tot.csv", header=T, sep=",")
+tabtot <- read.csv("S1_Data.csv", header=T, sep=",")
 for(i in (c(8:11)))
 {
   tabtot[,i] <- as.numeric(as.character(tabtot[,i])) 
@@ -115,7 +114,7 @@ fc_transform_DistMatrix <- function(matrix, name, disp.all=T){
     names(fac) <- c("Geno1", "Geno2", "comb")
     fac <- fac[,c(3,1,2)]
     tabtemp <- merge(fac, tabtemp[,c(1,4)], by="comb", all.x=T)
-    }
+  }
   
   tabDist1 <- tabtemp
   return(tabDist1)
@@ -238,34 +237,37 @@ tabhyb$distFruit <- abs(tabhyb$MotherFruit - tabhyb$FatherFruit)
 
 
 
-# Categorization with CI of hybrids  
+# Categorization of hybrids  
 #-----------------------------------------------------
 tabhyb$heterosis_type_Lifespan <- "null"
 tabhyb$heterosis_type_VegetativeDryMass <- "null"
 tabhyb$heterosis_type_GR <- "null"
 tabhyb$heterosis_type_Fruit <- "null"
+threshold <- 0.05/(450*3*4)
 
 for(i in levels(tabhyb$idGenotype))
 {
   
-  # Lifespan
+  # Age at reproduction (= lifespan)
   maxpar <- max(tabhyb[tabhyb$idGenotype==i, c("MotherLifespan","FatherLifespan")], na.rm=T)
   minpar <- min(tabhyb[tabhyb$idGenotype==i, c("MotherLifespan","FatherLifespan")], na.rm=T)
   meanpar <- mean(as.numeric(tabhyb[tabhyb$idGenotype==i, c("MotherLifespan","FatherLifespan")]), na.rm=T)
   
   if(length(na.omit(hyb[hyb$idGenotype==i,"Lifespan"]))>1){
+    boot_hybLifespan <- one.boot(na.omit(hyb[hyb$idGenotype==i,"Lifespan"]), mean, R=1000)
+    mod1 <- t.test(boot_hybLifespan$t, mu=minpar, alternative = "less")
+    mod2 <- t.test(boot_hybLifespan$t, mu=meanpar, alternative = "two.sided")
+    mod3 <- t.test(boot_hybLifespan$t, mu=maxpar, alternative = "greater")
+    est <- as.numeric(mod2$estimate)
+    tabhyb[tabhyb$idGenotype==i, "CIhybLifespaninf"] <- mod1$conf.int[1]
+    tabhyb[tabhyb$idGenotype==i, "CIhybLifespansup"] <- mod1$conf.int[2] 
     
-    CIhybLifespaninf <- mean(hyb[hyb$idGenotype==i,"Lifespan"], na.rm=T) - 1.96*(sd(hyb[hyb$idGenotype==i,"Lifespan"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"Lifespan"]))))
-    CIhybLifespansup <- mean(hyb[hyb$idGenotype==i,"Lifespan"], na.rm=T) + 1.96*(sd(hyb[hyb$idGenotype==i,"Lifespan"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"Lifespan"]))))
-    tabhyb[tabhyb$idGenotype==i, "CIhybLifespaninf"] <- CIhybLifespaninf
-    tabhyb[tabhyb$idGenotype==i, "CIhybLifespansup"] <- CIhybLifespansup
-    
-    if(CIhybLifespaninf>meanpar) {if(CIhybLifespaninf>maxpar) {
+    if(est>meanpar & mod2$p.value < threshold) {if(est>maxpar & mod3$p.value < threshold) {
       tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <- "AboveBestPar"} else{
         tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <- "AboveMeanPar"}} else{
-          if(CIhybLifespansup<minpar) {
+          if(est<minpar & mod1$p.value < threshold) {
             tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <- "BelowWorstPar"} else{ 
-              if(CIhybLifespansup<meanpar) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <- "BelowMeanPar"} else{}}}
+              if(est<meanpar & mod2$p.value < threshold) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <- "BelowMeanPar"} else{}}}
   } else{
     CIhybLifespaninf <- NA 
     CIhybLifespansup <- NA
@@ -274,25 +276,27 @@ for(i in levels(tabhyb$idGenotype))
     tabhyb[tabhyb$idGenotype==i, "heterosis_type_Lifespan"] <-NA
   }
   
-
+  
   # VegetativeDryMass
   maxpar <- max(tabhyb[tabhyb$idGenotype==i, c("MotherVegetativeDryMass","FatherVegetativeDryMass")], na.rm=T)
   minpar <- min(tabhyb[tabhyb$idGenotype==i, c("MotherVegetativeDryMass","FatherVegetativeDryMass")], na.rm=T)
   meanpar <- mean(as.numeric(tabhyb[tabhyb$idGenotype==i, c("MotherVegetativeDryMass","FatherVegetativeDryMass")]), na.rm=T)
   
   if(length(na.omit(hyb[hyb$idGenotype==i,"VegetativeDryMass"]))>1){
+    boot_hybLifespan <- one.boot(na.omit(hyb[hyb$idGenotype==i,"VegetativeDryMass"]), mean, R=1000)
+    mod1 <- t.test(boot_hybLifespan$t, mu=minpar, alternative = "less")
+    mod2 <- t.test(boot_hybLifespan$t, mu=meanpar, alternative = "two.sided")
+    mod3 <- t.test(boot_hybLifespan$t, mu=maxpar, alternative = "greater")
+    est <- as.numeric(mod2$estimate)
+    tabhyb[tabhyb$idGenotype==i, "CIhybVegetativeDryMassinf"] <- mod1$conf.int[1]
+    tabhyb[tabhyb$idGenotype==i, "CIhybVegetativeDryMasssup"] <- mod1$conf.int[2] 
     
-    CIhybVegetativeDryMassinf <- mean(hyb[hyb$idGenotype==i,"VegetativeDryMass"], na.rm=T) - 1.96*(sd(hyb[hyb$idGenotype==i,"VegetativeDryMass"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"VegetativeDryMass"]))))
-    CIhybVegetativeDryMasssup <- mean(hyb[hyb$idGenotype==i,"VegetativeDryMass"], na.rm=T) + 1.96*(sd(hyb[hyb$idGenotype==i,"VegetativeDryMass"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"VegetativeDryMass"]))))
-    tabhyb[tabhyb$idGenotype==i, "CIhybVegetativeDryMassinf"] <- CIhybVegetativeDryMassinf
-    tabhyb[tabhyb$idGenotype==i, "CIhybVegetativeDryMasssup"] <- CIhybVegetativeDryMasssup
-    
-    if(CIhybVegetativeDryMassinf>meanpar) {if(CIhybVegetativeDryMassinf>maxpar) {
+    if(est>meanpar & mod2$p.value < threshold) {if(est>maxpar & mod3$p.value < threshold) {
       tabhyb[tabhyb$idGenotype==i, "heterosis_type_VegetativeDryMass"] <- "AboveBestPar"} else{
         tabhyb[tabhyb$idGenotype==i, "heterosis_type_VegetativeDryMass"] <- "AboveMeanPar"}} else{
-          if(CIhybVegetativeDryMasssup<minpar) {
+          if(est<minpar & mod1$p.value < threshold) {
             tabhyb[tabhyb$idGenotype==i, "heterosis_type_VegetativeDryMass"] <- "BelowWorstPar"} else{ 
-              if(CIhybVegetativeDryMasssup<meanpar) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_VegetativeDryMass"] <- "BelowMeanPar"} else{}}}
+              if(est<meanpar & mod2$p.value < threshold) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_VegetativeDryMass"] <- "BelowMeanPar"} else{}}}
   } else{
     CIhybVegetativeDryMassinf <- NA 
     CIhybVegetativeDryMasssup <- NA
@@ -307,18 +311,20 @@ for(i in levels(tabhyb$idGenotype))
   meanpar <- mean(as.numeric(tabhyb[tabhyb$idGenotype==i, c("MotherGR","FatherGR")]), na.rm=T)
   
   if(length(na.omit(hyb[hyb$idGenotype==i,"GrowthRate"]))>1){
+    boot_hybLifespan <- one.boot(na.omit(hyb[hyb$idGenotype==i,"GrowthRate"]), mean, R=1000)
+    mod1 <- t.test(boot_hybLifespan$t, mu=minpar, alternative = "less")
+    mod2 <- t.test(boot_hybLifespan$t, mu=meanpar, alternative = "two.sided")
+    mod3 <- t.test(boot_hybLifespan$t, mu=maxpar, alternative = "greater")
+    est <- as.numeric(mod2$estimate)
+    tabhyb[tabhyb$idGenotype==i, "CIhybGRinf"] <- mod1$conf.int[1]
+    tabhyb[tabhyb$idGenotype==i, "CIhybGRsup"] <- mod1$conf.int[2] 
     
-    CIhybGRinf <- mean(hyb[hyb$idGenotype==i,"GrowthRate"], na.rm=T) - 1.96*(sd(hyb[hyb$idGenotype==i,"GrowthRate"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"GrowthRate"]))))
-    CIhybGRsup <- mean(hyb[hyb$idGenotype==i,"GrowthRate"], na.rm=T) + 1.96*(sd(hyb[hyb$idGenotype==i,"GrowthRate"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"GrowthRate"]))))
-    tabhyb[tabhyb$idGenotype==i, "CIhybGRinf"] <- CIhybGRinf
-    tabhyb[tabhyb$idGenotype==i, "CIhybGRsup"] <- CIhybGRsup
-    
-    if(CIhybGRinf>meanpar) {if(CIhybGRinf>maxpar) {
+    if(est>meanpar & mod2$p.value < threshold) {if(est>maxpar & mod3$p.value < threshold) {
       tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <- "AboveBestPar"} else{
         tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <- "AboveMeanPar"}} else{
-          if(CIhybGRsup<minpar) {
+          if(est<minpar & mod1$p.value < threshold) {
             tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <- "BelowWorstPar"} else{ 
-              if(CIhybGRsup<meanpar) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <- "BelowMeanPar"} else{}}}
+              if(est<meanpar & mod2$p.value < threshold) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <- "BelowMeanPar"} else{}}}
   } else{
     CIhybGRinf <- NA 
     CIhybGRsup <- NA
@@ -327,24 +333,27 @@ for(i in levels(tabhyb$idGenotype))
     tabhyb[tabhyb$idGenotype==i, "heterosis_type_GR"] <-NA
   }
   
+  
   # FruitNumber
   maxpar <- max(tabhyb[tabhyb$idGenotype==i, c("MotherFruit","FatherFruit")], na.rm=T)
   minpar <- min(tabhyb[tabhyb$idGenotype==i, c("MotherFruit","FatherFruit")], na.rm=T)
   meanpar <- mean(as.numeric(tabhyb[tabhyb$idGenotype==i, c("MotherFruit","FatherFruit")]), na.rm=T)
   
   if(length(na.omit(hyb[hyb$idGenotype==i,"FruitNumber"]))>1){
+    boot_hybLifespan <- one.boot(na.omit(hyb[hyb$idGenotype==i,"FruitNumber"]), mean, R=1000)
+    mod1 <- t.test(boot_hybLifespan$t, mu=minpar, alternative = "less")
+    mod2 <- t.test(boot_hybLifespan$t, mu=meanpar, alternative = "two.sided")
+    mod3 <- t.test(boot_hybLifespan$t, mu=maxpar, alternative = "greater")
+    est <- as.numeric(mod2$estimate)
+    tabhyb[tabhyb$idGenotype==i, "CIhybFruitinf"] <- mod1$conf.int[1]
+    tabhyb[tabhyb$idGenotype==i, "CIhybFruitsup"] <- mod1$conf.int[2] 
     
-    CIhybFruitinf <- mean(hyb[hyb$idGenotype==i,"FruitNumber"], na.rm=T) - 1.96*(sd(hyb[hyb$idGenotype==i,"FruitNumber"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"FruitNumber"]))))
-    CIhybFruitsup <- mean(hyb[hyb$idGenotype==i,"FruitNumber"], na.rm=T) + 1.96*(sd(hyb[hyb$idGenotype==i,"FruitNumber"], na.rm=T)/sqrt(length(na.omit(hyb[hyb$idGenotype==i,"FruitNumber"]))))
-    tabhyb[tabhyb$idGenotype==i, "CIhybFruitinf"] <- CIhybFruitinf
-    tabhyb[tabhyb$idGenotype==i, "CIhybFruitsup"] <- CIhybFruitsup
-    
-    if(CIhybFruitinf>meanpar) {if(CIhybFruitinf>maxpar) {
+    if(est>meanpar & mod2$p.value < threshold) {if(est>maxpar & mod3$p.value < threshold) {
       tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <- "AboveBestPar"} else{
         tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <- "AboveMeanPar"}} else{
-          if(CIhybFruitsup<minpar) {
+          if(est<minpar & mod1$p.value < threshold) {
             tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <- "BelowWorstPar"} else{ 
-              if(CIhybFruitsup<meanpar) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <- "BelowMeanPar"} else{}}}
+              if(est<meanpar & mod2$p.value < threshold) {tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <- "BelowMeanPar"} else{}}}
   } else{
     CIhybFruitinf <- NA 
     CIhybFruitsup <- NA
@@ -352,7 +361,9 @@ for(i in levels(tabhyb$idGenotype))
     tabhyb[tabhyb$idGenotype==i, "CIhybFruitsup"] <- NA
     tabhyb[tabhyb$idGenotype==i, "heterosis_type_Fruit"] <-NA
   }
+  
 }
+
 
 
 
@@ -420,6 +431,10 @@ tabt1 <- tabtot2[tabtot2$Type=="Inbred",]
 tabt1 <- droplevels(tabt1)
 nls1 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2+C2*log10(VegetativeDryMass))), data=tabt1, start=list(A2=0.005,B2=1.5,C2=-0.07))
 summary(nls1)
+nls2 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2)), data=tabt1, start=list(A2=0.005,B2=0.5))
+summary(nls2)
+AIC(nls2) - AIC(nls1)
+
 A2nlsI <- coef(nls1)[1]
 B2nlsI <- coef(nls1)[2]
 C2nlsI <- coef(nls1)[3]
@@ -429,6 +444,10 @@ tabt1 <- tabtot2[tabtot2$Type=="Hybrid",]
 tabt1 <- droplevels(tabt1)
 nls1 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2+C2*log10(VegetativeDryMass))), data=tabt1, start=list(A2=0.005,B2=1.5,C2=-0.07))
 summary(nls1)
+nls2 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2)), data=tabt1, start=list(A2=0.005,B2=0.5))
+summary(nls2)
+AIC(nls2) - AIC(nls1)
+
 A2nlsH <- coef(nls1)[1]
 B2nlsH <- coef(nls1)[2]
 C2nlsH <- coef(nls1)[3]
@@ -447,6 +466,10 @@ nls1 <- nls(FruitNumber ~ VegetativeDryMass/(A3+ B3*VegetativeDryMass+ C3*(Veget
             start=list(A3=2,B3=1.3,C3=0.01),
             nls.control(maxiter=1000, minFactor = 1/100000000000))
 summary(nls1)
+nls2 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2)), data=tabt1, start=list(A2=0.005,B2=0.5))
+summary(nls2)
+AIC(nls2) - AIC(nls1)
+
 A3nlsI <- coef(nls1)[1]
 B3nlsI <- coef(nls1)[2]
 C3nlsI <- coef(nls1)[3]
@@ -458,6 +481,10 @@ nls1 <- nls(FruitNumber ~ VegetativeDryMass/(A3+ B3*VegetativeDryMass+ C3*(Veget
             start=list(A3=2,B3=1.3,C3=0.01),
             nls.control(maxiter=1000, minFactor = 1/100000000000))
 summary(nls1)
+nls2 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2)), data=tabt1, start=list(A2=0.005,B2=0.5))
+summary(nls2)
+AIC(nls2) - AIC(nls1)
+
 A3nlsH <- coef(nls1)[1]
 B3nlsH <- coef(nls1)[2]
 C3nlsH <- coef(nls1)[3]
@@ -470,7 +497,7 @@ C3nlsH <- coef(nls1)[3]
 
 
 
-# NPL from nonlinear equations
+# NLDev from nonlinear equations
 #----------------------------------------------
 
 for(i in levels(tabhyb$idGenotype))
@@ -481,7 +508,7 @@ for(i in levels(tabhyb$idGenotype))
   hybdm <- as.numeric(tabhyb[tabhyb$idGenotype==i, "VegetativeDryMass"])
   tabhyb[tabhyb$idGenotype==i, "VegetativeDryMass_meanPar"] <- meandm
   
-
+  
   # GrowthRate 
   maxpar <- max(tabhyb[tabhyb$idGenotype==i, c("MotherGR","FatherGR")], na.rm=T)
   meanpar <- mean(as.numeric(tabhyb[tabhyb$idGenotype==i, c("MotherGR","FatherGR")]), na.rm=T)
@@ -609,6 +636,154 @@ colmeanpar <- rgb(col2rgb("gold2")[1], col2rgb("gold2")[2],col2rgb("gold2")[3],
 colhybval <- rgb(col2rgb("chocolate4")[1], col2rgb("chocolate4")[2],col2rgb("chocolate4")[3], 
                  maxColorValue = 255, alpha=70)
 
+
+
+
+
+
+
+#=============================================
+#  Box 1
+#=============================================
+
+# Import Arabidopsis Data
+#----------------------------------------
+
+acc <- read.csv("MeanPheno_accessions_FloSub_GT01.csv", header=T, sep=",") 
+for(i in c(1)) {acc[,i] <- as.factor(as.character(acc[,i]))}
+for(i in c(2:15)) {acc[,i] <- as.numeric(as.character(acc[,i]))}
+acc <- droplevels(acc)
+acc$M <- acc$DMmax
+acc$G <- acc$GRtot
+str(acc)
+
+ril <- read.csv("CVL_AllData_av.csv", header=T, sep=",")   # data accessions collected in MPI
+ril <- ril[ril$idCondition=="CTxWW",]
+ril$M <- ril$shoot_DM
+ril$G <- ril$Growth_rate
+ril <- droplevels(ril)
+str(ril)
+
+
+intersp <- read.csv("S1_Data_interSP.csv", header=T, sep=",") 
+intersp$M <- intersp$M * 1000000 
+intersp$G <- intersp$G * 1000000
+str(intersp)
+
+
+
+# Figure interspecific
+#----------------------------------------
+
+pdf("Box_Fig1_log.pdf", width = 6, height = 6)
+plot(log10(intersp$M), log10(intersp$G), ylim=c(-0.6,9),xlim=c(-1.3,11.3),
+     pch=16, col="grey60", cex=1.1, axes=F,
+     xlab="log[Plant dry mass M (g)]", 
+     ylab="log[Growth rate (mg d-1)]")
+box()
+axis(1, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=seq(0,12,3), labels=10^(seq(0,12,3)), tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=log10(c(seq(0,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+axis(2, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(2, at=seq(-2,12,2), labels=10^(seq(-2,12,2)), tcl=0.5, mgp=c(3,0.5,0), las=2)
+axis(2, at=log10(c(seq(0.001,0.01,0.001),seq(0.01,0.1,0.01),seq(0.1,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+
+mod1 <- sma(log10(intersp$G) ~ log10(intersp$M))
+abline(mod1, col="red", lwd=3)
+legend("topleft", legend="log(y) = 0.83 + 0.75log(x)", cex=1, bty="n")
+dev.off()
+
+
+
+
+# Figures accessions A. thaliana
+#----------------------------------------
+acc$M <- log10(acc$M)
+acc$G <- log10(acc$G)
+
+pdf("Box_Fig2_log.pdf", width = 6, height = 6)
+plot(acc$M, acc$G, xlim=c(1,3.8),ylim=c(-0.5,1.7),
+     pch=16, col="grey50", cex=1.1, axes=F,
+     xlab="log[Plant dry mass M (g)]", 
+     ylab="log[Growth rate (mg d-1)]")
+box()
+axis(1, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=seq(0,12,1), labels=10^(seq(0,12,1)), tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=log10(c(seq(0,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+axis(2, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(2, at=seq(-2,12,1), labels=10^(seq(-2,12,1)), tcl=0.5, mgp=c(3,0.5,0), las=2)
+axis(2, at=log10(c(seq(0.001,0.01,0.001),seq(0.01,0.1,0.01),seq(0.1,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+
+mod1 <- sma(acc$G ~ acc$M)
+abline(mod1, col="black", lwd=3)
+
+#mod1 <- glm(G ~ poly(M, degree=2, raw=T), family = gaussian, data= acc)
+#summary(mod1)
+#coef(mod1) 
+#curve(coef(mod1)[1] + coef(mod1)[2]*x + coef(mod1)[3]*(x^2), from=1.2, to=3.53, lwd=3, col="red", add=T, lty=1)
+
+dev.off()
+
+
+
+# Figures RILs in A. thaliana
+#----------------------------------------
+ril$M <- log10(ril$M)
+ril$G <- log10(ril$G)
+
+pdf("Box_Fig3_log.pdf", width = 6, height = 6)
+plot(ril$M, ril$G, xlim=c(0.33,2.8),ylim=c(-0.7,1.55),
+     pch=16, col="grey50", cex=1.1, axes=F,
+     xlab="log[Plant dry mass M (g)]", 
+     ylab="log[Growth rate (mg d-1)]")
+box()
+axis(1, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=seq(0,12,1), labels=10^(seq(0,12,1)), tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=log10(c(seq(0,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+axis(2, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(2, at=seq(-2,12,1), labels=10^(seq(-2,12,1)), tcl=0.5, mgp=c(3,0.5,0), las=2)
+axis(2, at=log10(c(seq(0.001,0.01,0.001),seq(0.01,0.1,0.01),seq(0.1,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+
+mod1 <- sma(ril$G ~ ril$M)
+abline(mod1, col="black", lwd=3)
+#legend("topleft", legend="log(y) = -0.80 + 0.75log(x)", cex=1, bty="n")
+
+#mod1 <- glm(G ~ poly(M, degree=2, raw=T), family = gaussian, data= ril)
+#summary(mod1)
+#coef(mod1) 
+#curve(coef(mod1)[1] + coef(mod1)[2]*x + coef(mod1)[3]*(x^2), from=0.34, to=2.75, lwd=3, col="red", add=T, lty=1)
+
+dev.off()
 
 
 
@@ -766,7 +941,7 @@ summary(mod)
 
 
 
-# Lifespan
+# Age at reproduction (= Lifespan)
 p2_1 <- ggplot(tab, aes(Lifespan))+ theme_classic() +
   geom_density(aes(fill=Type), alpha=0.55, bw=9) +
   scale_fill_manual(values=c("dodgerblue3", "firebrick3")) +
@@ -854,24 +1029,96 @@ summary(mod)
 
 
 
-
 # Pie chart
 tabhyb <- read.csv("Table_Hybrid_Analyzed.csv", header=T, sep=",")
-for(i in (c(5:10,15:35,42:90)))
+for(i in (c(4:7,12:14,16:27, 32:62)))
 {
   tabhyb[,i] <- as.numeric(as.character(tabhyb[,i])) 
 }
-for(i in (c(1:4,11:14,36:41)))
+for(i in (c(1:3,8:11,15, 28:31)))
 {
   tabhyb[,i] <- as.factor(as.character(tabhyb[,i])) 
 }
 str(tabhyb)
 
-tabhyb <- na.omit(tabhyb[,c(1,32:36)])
+tabhyb <- na.omit(tabhyb[,c(1,28:31)])
 tabhyb <- droplevels(tabhyb)
 str(tabhyb)
 
+
+# Age at reproduction
+percent_negBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Lifespan=="BelowWorstPar", "heterosis_type_Lifespan"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_Lifespan"])))
+percent_negMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Lifespan=="BelowMeanPar", "heterosis_type_Lifespan"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_Lifespan"])))
+percent_posMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Lifespan=="AboveMeanPar", "heterosis_type_Lifespan"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_Lifespan"])))
+percent_posBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Lifespan=="AboveBestPar", "heterosis_type_Lifespan"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_Lifespan"])))
+percent_noHet <- 100*(length((tabhyb[tabhyb$heterosis_type_Lifespan=="null", "heterosis_type_Lifespan"])) / 
+                        length(na.omit(tabhyb[, "heterosis_type_Lifespan"])))
+
+pdf("PieChart_FT.pdf", width = 4, height = 4)
+slices <- c(percent_noHet, percent_negBPH, percent_negMPH, percent_posMPH, percent_posBPH) 
+lbls <- c(paste(as.character(round(percent_noHet, digits = 0)), "%", sep=""), 
+          paste(as.character(round(percent_negBPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_negMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posBPH, digits = 0)), "%", sep=""))
+pie3D(slices,labels=lbls,explode=0.1, theta = 1.15, start=0,
+      main="", col=c("azure3","coral4","coral","darkolivegreen3","darkolivegreen"))
+dev.off()
+
+
+# DM
+percent_negBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_VegetativeDryMass=="BelowWorstPar", "heterosis_type_VegetativeDryMass"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_VegetativeDryMass"])))
+percent_negMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_VegetativeDryMass=="BelowMeanPar", "heterosis_type_VegetativeDryMass"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_VegetativeDryMass"])))
+percent_posMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_VegetativeDryMass=="AboveMeanPar", "heterosis_type_VegetativeDryMass"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_VegetativeDryMass"])))
+percent_posBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_VegetativeDryMass=="AboveBestPar", "heterosis_type_VegetativeDryMass"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_VegetativeDryMass"])))
+percent_noHet <- 100*(length((tabhyb[tabhyb$heterosis_type_VegetativeDryMass=="null", "heterosis_type_VegetativeDryMass"])) / 
+                        length(na.omit(tabhyb[, "heterosis_type_VegetativeDryMass"])))
+
+pdf("PieChart_DM.pdf", width = 4, height = 4)
+slices <- c(percent_noHet, percent_negBPH, percent_negMPH, percent_posMPH, percent_posBPH) 
+lbls <- c(paste(as.character(round(percent_noHet, digits = 0)), "%", sep=""), 
+          paste(as.character(round(percent_negBPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_negMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posBPH, digits = 0)), "%", sep=""))
+pie3D(slices,labels=lbls,explode=0.1, theta = 1.15, start=0,
+      main="", col=c("azure3","coral4","coral","darkolivegreen3","darkolivegreen"))
+dev.off()
+
+
 # GR
+percent_negBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_GR=="BelowWorstPar", "heterosis_type_GR"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_GR"])))
+percent_negMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_GR=="BelowMeanPar", "heterosis_type_GR"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_GR"])))
+percent_posMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_GR=="AboveMeanPar", "heterosis_type_GR"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_GR"])))
+percent_posBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_GR=="AboveBestPar", "heterosis_type_GR"])) / 
+                         length(na.omit(tabhyb[, "heterosis_type_GR"])))
+percent_noHet <- 100*(length((tabhyb[tabhyb$heterosis_type_GR=="null", "heterosis_type_GR"])) / 
+                        length(na.omit(tabhyb[, "heterosis_type_GR"])))
+
+pdf("PieChart_GR.pdf", width = 4, height = 4)
+slices <- c(percent_noHet, percent_negBPH, percent_negMPH, percent_posMPH, percent_posBPH) 
+lbls <- c(paste(as.character(round(percent_noHet, digits = 0)), "%", sep=""), 
+          paste(as.character(round(percent_negBPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_negMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posBPH, digits = 0)), "%", sep=""))
+pie3D(slices,labels=lbls,explode=0.1, theta = 1.15, start=0,
+      main="", col=c("azure3","coral4","coral","darkolivegreen3","darkolivegreen"))
+dev.off()
+
+
+# FN
 percent_negBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Fruit=="BelowWorstPar", "heterosis_type_Fruit"])) / 
                          length(na.omit(tabhyb[, "heterosis_type_Fruit"])))
 percent_negMPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Fruit=="BelowMeanPar", "heterosis_type_Fruit"])) / 
@@ -883,10 +1130,13 @@ percent_posBPH <- 100*(length((tabhyb[tabhyb$heterosis_type_Fruit=="AboveBestPar
 percent_noHet <- 100*(length((tabhyb[tabhyb$heterosis_type_Fruit=="null", "heterosis_type_Fruit"])) / 
                         length(na.omit(tabhyb[, "heterosis_type_Fruit"])))
 
-
-pdf("PieChart_Fruit.pdf", width = 4, height = 4)
+pdf("PieChart_FN.pdf", width = 4, height = 4)
 slices <- c(percent_noHet, percent_negBPH, percent_negMPH, percent_posMPH, percent_posBPH) 
-lbls <- c("61%", "7%", "15%", "10%", "8%")
+lbls <- c(paste(as.character(round(percent_noHet, digits = 0)), "%", sep=""), 
+          paste(as.character(round(percent_negBPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_negMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posMPH, digits = 0)), "%", sep=""),
+          paste(as.character(round(percent_posBPH, digits = 0)), "%", sep=""))
 pie3D(slices,labels=lbls,explode=0.1, theta = 1.15, start=0,
       main="", col=c("azure3","coral4","coral","darkolivegreen3","darkolivegreen"))
 dev.off()
@@ -1029,13 +1279,22 @@ points(log10(tabhyb$GeneticDist), tabhyb$BPH_GR,
 points(log10(tabhyb$GeneticDist), tabhyb$MPH_GR, 
        pch=16, col=colMPH, cex=1.3)
 mod1 <- sma(tabhyb$MPH_GR ~ log10(tabhyb$GeneticDist))
-mod2 <- lm(tabhyb$MPH_GR ~ log10(tabhyb$GeneticDist))
+#mod2 <- lm(tabhyb$MPH_GR ~ log10(tabhyb$GeneticDist))
+mod2 <- lm(tabhyb$MPH_GR ~ poly(log10(tabhyb$GeneticDist), degree=2, raw=T))
 mod3 <- sma(tabhyb$BPH_GR ~ log10(tabhyb$GeneticDist))
-mod4 <- lm(tabhyb$BPH_GR ~ log10(tabhyb$GeneticDist))
+#mod4 <- lm(tabhyb$BPH_GR ~ log10(tabhyb$GeneticDist))
+mod4 <- lm(tabhyb$BPH_GR ~ poly(log10(tabhyb$GeneticDist), degree=2, raw=T))
 
-curve(coef(mod1)[1] + coef(mod1)[2]*x, from=4.17, 
+mod5 <- slope.test(y=tabhyb$BPH_GR, x=log10(tabhyb$GeneticDist), test.value=4.039655)
+mod5
+
+#curve(coef(mod1)[1] + coef(mod1)[2]*x, from=4.17, 
+#      to=max(log10(tabhyb$GeneticDist), na.rm=T), lwd=2, add=T, col="lightseagreen")
+curve(coef(mod2)[1] + coef(mod2)[2]*x + coef(mod2)[3]*(x^2), from=3.92, 
       to=max(log10(tabhyb$GeneticDist), na.rm=T), lwd=2, add=T, col="lightseagreen")
-curve(coef(mod3)[1] + coef(mod3)[2]*x, from=4.19, 
+#curve(coef(mod1)[1] + coef(mod1)[2]*x, from=4.17, 
+#      to=max(log10(tabhyb$GeneticDist), na.rm=T), lwd=2, add=T, col="lightseagreen")
+curve(coef(mod4)[1] + coef(mod4)[2]*x + coef(mod4)[3]*(x^2), from=3.92, 
       to=max(log10(tabhyb$GeneticDist), na.rm=T), lwd=2, add=T, col="navy")
 summary(mod2)
 summary(mod4)
@@ -1058,20 +1317,30 @@ points(log10(tabhyb$distVegetativeDryMass), tabhyb$MPH_GR,
        pch=16, col=colMPH, cex=1.3)
 
 mod1 <- sma(tabhyb$MPH_GR ~ log10(tabhyb$distVegetativeDryMass))
-mod2 <- lm(tabhyb$MPH_GR ~ log10(tabhyb$distVegetativeDryMass))
+#mod2 <- lm(tabhyb$MPH_GR ~ log10(tabhyb$))
+mod2 <- lm(tabhyb$MPH_GR ~ poly(log10(tabhyb$distVegetativeDryMass), degree=2, raw=T))
+confint(mod2)
 mod3 <- sma(tabhyb$BPH_GR ~ log10(tabhyb$distVegetativeDryMass))
-mod4 <- lm(tabhyb$BPH_GR ~ log10(tabhyb$distVegetativeDryMass))
+#mod4 <- lm(tabhyb$BPH_GR ~ log10(tabhyb$distVegetativeDryMass))
+mod4 <- lm(tabhyb$BPH_GR ~ poly(log10(tabhyb$distVegetativeDryMass), degree=2, raw=T))
+confint(mod4)
 summary(mod2)
 summary(mod4)
+mod5 <- slope.test(y=tabhyb$BPH_GR, x=log10(tabhyb$distVegetativeDryMass), test.value=0.5619933)
+mod5
 
-curve(coef(mod1)[1] + coef(mod1)[2]*x, from=0.7, 
-      to=max(log10(tabhyb$distVegetativeDryMass), na.rm=T), lwd=2, add=T, col="lightseagreen")
+#curve(coef(mod1)[1] + coef(mod1)[2]*x, from=0.7, 
+#      to=max(log10(tabhyb$distVegetativeDryMass), na.rm=T), lwd=2, add=T, col="lightseagreen")
 #curve(coef(mod3)[1] + coef(mod3)[2]*x, from=4.19, 
 #      to=max(log10(tabhyb$distVegetativeDryMass), na.rm=T), lwd=2, add=T, col="navy")
+curve(coef(mod2)[1] + coef(mod2)[2]*x + coef(mod2)[3]*(x^2), from=-0.52, 
+      to=max(log10(tabhyb$distVegetativeDryMass), na.rm=T), lwd=2, add=T, col="lightseagreen")
+curve(coef(mod4)[1] + coef(mod4)[2]*x + coef(mod4)[3]*(x^2), from=-0.52, 
+      to=max(log10(tabhyb$distVegetativeDryMass), na.rm=T), lwd=2, lty=2, add=T, col="navy")
 
 legend("topleft",  bty="n", cex=1.5,
-       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.03***")), 
-                expression(paste("BPH: ", italic(r), ""^2, " = 0.0005"^NS))),
+       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.05***")), 
+                expression(paste("BPH: ", italic(r), ""^2, " = 0.009"^NS))),
        text.col = c("lightseagreen","navy"), inset=c(-0.09,-0.03))
 
 
@@ -1087,19 +1356,24 @@ points(log10(tabhyb$GeneticDist), tabhyb$MPH_Fruit,
 points(log10(tabhyb$GeneticDist), tabhyb$BPH_Fruit, 
        pch=16, col=colBPH, cex=1.3)
 mod1 <- sma(tabhyb$MPH_Fruit ~ log10(tabhyb$GeneticDist))
-mod2 <- lm(tabhyb$MPH_Fruit ~ log10(tabhyb$GeneticDist))
+#mod2 <- lm(tabhyb$MPH_Fruit ~ log10(tabhyb$GeneticDist))
+mod2 <- lm(tabhyb$MPH_Fruit ~ poly(log10(tabhyb$GeneticDist), degree=2, raw=T))
 mod3 <- sma(tabhyb$BPH_Fruit ~ log10(tabhyb$GeneticDist))
-mod4 <- lm(tabhyb$BPH_Fruit ~ log10(tabhyb$GeneticDist))
+#mod4 <- lm(tabhyb$BPH_Fruit ~ log10(tabhyb$GeneticDist))
+mod4 <- lm(tabhyb$BPH_Fruit ~ poly(log10(tabhyb$GeneticDist), degree=2, raw=T))
+mod5 <- slope.test(y=tabhyb$BPH_Fruit, x=log10(tabhyb$GeneticDist), test.value=-3.759696)
+mod5
 
-#curve(coef(mod1)[1] + coef(mod1)[2]*x, from=4.17, 
-#      to=max(log10(tabhyb$GeneticDist), na.rm=T), lwd=2, add=T, col="lightseagreen")
-curve(coef(mod3)[1] + coef(mod3)[2]*x, from=4, 
-      to=4.57, lwd=2, add=T, col="navy")
+
+curve(coef(mod2)[1] + coef(mod2)[2]*x + coef(mod2)[3]*(x^2),lty=2, from=3.91, 
+      to=4.63, lwd=2, add=T, col="lightseagreen")
+curve(coef(mod4)[1] + coef(mod4)[2]*x + coef(mod4)[3]*(x^2), lty=2, from=3.91, 
+      to=4.62, lwd=2, add=T, col="navy")
 summary(mod2)
 summary(mod4)
 
 legend("topleft",  bty="n", cex=1.5,
-       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.003"^NS)), 
+       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.007"^NS)), 
                 expression(paste("BPH: ", italic(r), ""^2, " = 0.01*"))),
        text.col = c("lightseagreen","navy"), inset=c(-0.09,-0.03))
 
@@ -1116,18 +1390,27 @@ points(log10(tabhyb$distVegetativeDryMass), tabhyb$BPH_Fruit,
        pch=16, col=colBPH, cex=1.3)
 
 mod1 <- sma(tabhyb$MPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
-mod2 <- lm(tabhyb$MPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
+#mod2 <- lm(tabhyb$MPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
+mod2 <- lm(tabhyb$MPH_Fruit ~ poly(log10(tabhyb$distVegetativeDryMass), degree=2, raw=T))
+confint(mod2)
 mod3 <- sma(tabhyb$BPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
-mod4 <- lm(tabhyb$BPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
+#mod4 <- lm(tabhyb$BPH_Fruit ~ log10(tabhyb$distVegetativeDryMass))
+mod4 <- lm(tabhyb$BPH_Fruit ~ poly(log10(tabhyb$distVegetativeDryMass), degree=2, raw=T))
+confint(mod4)
 summary(mod2)
 summary(mod4)
 
-curve(coef(mod3)[1] + coef(mod3)[2]*x, from=-0.2, 
+mod5 <- slope.test(y=tabhyb$BPH_Fruit, x=log10(tabhyb$distVegetativeDryMass), test.value=-0.5022512)
+mod5
+
+curve(coef(mod2)[1] + coef(mod2)[2]*x + coef(mod2)[3]*(x^2), lty=2, from=-0.44, 
+      to=3.1, lwd=2, add=T, col="lightseagreen")
+curve(coef(mod4)[1] + coef(mod4)[2]*x + coef(mod4)[3]*(x^2), from=-0.44, 
       to=3.1, lwd=2, add=T, col="navy")
 
 legend("topleft",  bty="n", cex=1.5,
-       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.004"^NS)), 
-                expression(paste("BPH: ", italic(r), ""^2, " = 0.05***"))),
+       legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.007"^NS)), 
+                expression(paste("BPH: ", italic(r), ""^2, " = 0.09***"))),
        text.col = c("lightseagreen","navy"), inset=c(-0.09,-0.03))
 
 dev.off()
@@ -1148,8 +1431,51 @@ dev.off()
 #-----------------------------------------------------------------
 #-----------------------------------------------------------------
 
-pdf("Fig6_corrpredobsHet.pdf", width=7, height = 3)
-par(mfrow=c(1,2), oma=c(2,0,0,0), mar=c(.5,4.2,.5,.5))
+pdf("Fig6.pdf", width=7, height = 3)
+par(mfrow=c(2,2), oma=c(2,0,0,0), mar=c(.5,4.2,.5,.5))
+
+# A
+tabtot2 <- na.omit(tabtot[,c("idGenotype","Type","VegetativeDryMass","GrowthRate")])
+tabtot2 <- droplevels(tabtot2)
+str(tabtot2)
+
+#pdf("Fig6A.pdf", width = 6, height = 5.5)
+#jpeg("GenDist_vs_GeoDist.jpg", width = 4000, height = 3400, quality = 100, res=700)
+#par(mar=c(4,4,.5,.5), tcl=0.3)
+plot(tabtot2$VegetativeDryMass, tabtot2$GrowthRate, 
+     xlab="Plant dry mass", ylab="Growth rate", type="n", ylim=c(0,45))
+points(tabtot2[tabtot2$Type=="Hybrid", "VegetativeDryMass"], 
+       tabtot2[tabtot2$Type=="Hybrid", "GrowthRate"], 
+       pch=16, col="grey80", cex=1)
+tabt1 <- tabtot2[tabtot2$Type=="Hybrid",]
+tabt1 <- droplevels(tabt1)
+nls1 <- nls(GrowthRate ~ A2*(VegetativeDryMass^(B2+C2*log10(VegetativeDryMass))), data=tabt1, start=list(A2=0.005,B2=1.5,C2=-0.07))
+summary(nls1)
+A2nlsH <- coef(nls1)[1]
+B2nlsH <- coef(nls1)[2]
+C2nlsH <- coef(nls1)[3]
+curve.S <- function(dm, A2, B2, C2) { A2*(dm^(B2+C2*log10(dm)))}
+curve(curve.S(dm = x, A2 = A2nlsH, B2 = B2nlsH, C2=C2nlsH), 0, 
+      max(tabt1[,"VegetativeDryMass"]), lwd = 1, add=T, col="grey50", lty=1)
+
+points(tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="58", "VegetativeDryMass"], #611
+       tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="58", "GrowthRate"], 
+       pch=16, col="firebrick3", cex=1.5)
+points(tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="299", "VegetativeDryMass"], #406
+       tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="299", "GrowthRate"], 
+       pch=16, col="firebrick3", cex=1.5)
+points(tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="476", "VegetativeDryMass"], #1167
+       tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="476", "GrowthRate"], 
+       pch=16, col="dodgerblue3", cex=1.5)
+
+
+legend("topleft", legend=c("Phenotypic non-linearity = 0.22", "MPH = 0.18"), 
+       bty="n", cex=1.3, inset=c(-0.05,0))
+dev.off()
+
+
+
+
 
 # B
 plot(tabhyb$predMPH_GR_fromHybVegetativeDryMass, tabhyb$MPH_GR, 
@@ -1171,6 +1497,51 @@ legend("topleft",  bty="n", cex=1.5,
        legend=c(expression(paste("MPH: ", italic(r), ""^2, " = 0.75***")), 
                 expression(paste("BPH: ", italic(r), ""^2, " = 0.66***"))),
        text.col = c("lightseagreen","navy"), inset=c(-0.12,-0.05))
+
+
+
+
+# C
+tabtot2 <- na.omit(tabtot[,c("idGenotype","Type","VegetativeDryMass","FruitNumber")])
+tabtot2 <- droplevels(tabtot2)
+str(tabtot2)
+
+#pdf("Fig6C.pdf", width = 6, height = 5.5)
+#par(mar=c(4,4,.5,.5), tcl=0.3)
+plot(tabtot2$VegetativeDryMass, tabtot2$FruitNumber, 
+     xlab="Vegetative dry mass", ylab="Fruit number", type="n", ylim=c(-10,360))
+points(tabtot2[tabtot2$Type=="Hybrid", "VegetativeDryMass"], 
+       tabtot2[tabtot2$Type=="Hybrid", "FruitNumber"], 
+       pch=16, col="grey80", cex=1)
+tabt1 <- tabtot2[tabtot2$Type=="Hybrid",]
+tabt1 <- droplevels(tabt1)
+nls1 <- nls(FruitNumber ~ VegetativeDryMass/(A3+ B3*VegetativeDryMass+ C3*(VegetativeDryMass^2)), data=tabt1, 
+            start=list(A3=2,B3=1.3,C3=0.01),
+            nls.control(maxiter=1000, minFactor = 1/100000000000))
+summary(nls1)
+A3nlsH <- coef(nls1)[1]
+B3nlsH <- coef(nls1)[2]
+C3nlsH <- coef(nls1)[3]
+curve.S <- function(dm, A3, B3, C3) {dm/(A3+ B3*dm+ C3*(dm^2))}
+curve(curve.S(dm = x, A3 = A3nlsH, B3 = B3nlsH, C3=C3nlsH), 20, 
+      max(tabt1[,"VegetativeDryMass"]), lwd = 1, add=T, col="grey50", lty=1)
+
+points(tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="77", "VegetativeDryMass"], #611
+       tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="77", "FruitNumber"], 
+       pch=16, col="firebrick3", cex=1.5)
+points(tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="704", "VegetativeDryMass"], #406
+       tabtot[tabtot$idExp=="GT01" & tabtot$idPot=="704", "FruitNumber"], 
+       pch=16, col="firebrick3", cex=1.5)
+points(tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="852", "VegetativeDryMass"], #1167
+       tabtot[tabtot$idExp=="GT05" & tabtot$idPot=="852", "FruitNumber"], 
+       pch=16, col="dodgerblue3", cex=1.5)
+
+
+legend("topright", legend=c("Phenotypic non-linearity = 0.20", "MPH = 0.35"), 
+       bty="n", cex=1.3, inset=c(0.0,0))
+dev.off()
+
+
 
 
 # D
@@ -1218,8 +1589,86 @@ dev.off()
 #-----------------------------------------------------------------
 #-----------------------------------------------------------------
 
+dat <- tab
+dat$M <- as.numeric(as.character(dat$VegetativeDryMass))
+dat$GrowthRate <- as.numeric(as.character(dat$GrowthRate))
+dat$GrowthRate <- log10(dat$GrowthRate)
+dat$M <- log10(dat$M)
 
-pdf("FigS1_corrpredobsHyb.pdf", width=7, height = 3)
+acc <- dat[dat$idExp=="Exp1" & dat$Type=="Accession",] 
+acc <- aggregate(acc[,c(8:11)], by=list(idGenotype=acc$idGenotype), FUN=mean, na.rm=T)
+acc <- droplevels(acc)
+
+hyb <- dat[dat$idExp=="Exp2" & dat$Type=="Hybrid",]
+hyb <- aggregate(hyb[,c(8:11)], by=list(idGenotype=hyb$idGenotype), FUN=mean, na.rm=T)
+hyb <- droplevels(hyb)
+
+
+
+mod0 <- slope.com(y=GrowthRate, x=M, groups = Type, data=dat)
+mod0 <- sma(GrowthRate ~ M*Type, data=dat)
+
+mod1 <- sma(GrowthRate ~ M, data=acc)
+mod11 <- slope.test(y=acc$GrowthRate, x=acc$M, test.value = 0.75)
+mod1
+
+mod2 <- sma(GrowthRate ~ M, data=hyb)
+mod22 <- slope.test(y=hyb$GrowthRate, x=hyb$M, test.value = 0.75)
+mod2
+
+
+pdf("Plot_AllomRelatiomships_log10.pdf", width = 6, height = 6)
+#jpeg("GenDist_vs_GeoDist.jpg", width = 4000, height = 3400, quality = 100, res=700)
+par(mar=c(4,4,.5,.5), tcl=0.3)
+plot(dat[dat$Type=="Accession","M"], dat[dat$Type=="Accession","GrowthRate"], type="n", xlim=c(0.76,3.52),ylim=c(-0.5,1.7), axes=F,
+     xlab="log[Vegetative dry mass M (g)]", 
+     ylab="log[Growth rate (mg d-1)]")
+box()
+axis(1, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=seq(0,12,1), labels=10^(seq(0,12,1)), tcl=0.5, mgp=c(3,0.5,0))
+axis(1, at=log10(c(seq(0,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+axis(2, at=seq(-10,20,1), labels=F, tcl=0.5, mgp=c(3,0.5,0))
+axis(2, at=seq(-2,12,1), labels=10^(seq(-2,12,1)), tcl=0.5, mgp=c(3,0.5,0), las=2)
+axis(2, at=log10(c(seq(0.001,0.01,0.001),seq(0.01,0.1,0.01),seq(0.1,1,0.1),seq(1,10,1),seq(10,100,10),seq(100,1000,100),
+                   seq(1000,10000,1000), seq(10000,100000,10000), seq(100000,1000000,100000),
+                   seq(1000000,10000000,1000000),seq(10000000,100000000,10000000),seq(100000000,1000000000,100000000),
+                   seq(1000000000,10000000000,1000000000),seq(10000000000,100000000000,10000000000),
+                   seq(100000000000,1000000000000,100000000000),seq(1000000000000,10000000000000,1000000000000))),
+     labels=F, tcl=0.3, mgp=c(3,0.5,0))
+
+
+points(dat[dat$Type=="Accession","M"], dat[dat$Type=="Accession","GrowthRate"], 
+       pch=16, col=colinb, cex=1.8)
+points(dat[dat$Type=="Hybrid","M"], dat[dat$Type=="Hybrid","GrowthRate"], 
+       pch=16, col=colhyb, cex=1.8)
+
+abline(mod1, col="firebrick3", lwd=3)
+abline(mod2, col="dodgerblue4", lwd=3)
+
+legend("topleft", legend=c("Slope in accessions = 0.74","Slope in hybrids = 0.78"), pch=16,
+       col =c(colinb, colhyb), pt.cex=1.8,
+       lty=c(1,1), lwd=c(3,3), bty="n", cex=1.1, inset=c(0.05,0))
+
+dev.off()
+
+
+
+
+
+
+
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# FIG. S2
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+
+pdf("FigS2.pdf", width=7, height = 3)
 par(mfrow=c(1,2), oma=c(2,0,0,0), mar=c(.5,4.2,.5,.5))
 
 # A
@@ -1272,7 +1721,32 @@ dev.off()
 
 
 
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+# FIG. S3
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+
+pdf("FigS3.pdf", width=6, height = 5)
+par(mfrow=c(2,2), oma=c(0.5,0.5,0,0), mar=c(3,3,.5,.5))
 
 
+plot(tabhyb$GR, tabhyb$MPH_GR, pch=16, cex=0.8, col="grey20", xlab="Growth rate (mg d-1) in hybrids",
+     ylab="MPH of fruit number")
+(cor.test(tabhyb$GR, tabhyb$MPH_GR)$estimate)^2
+
+plot(tabhyb$GR, tabhyb$BPH_GR, pch=16, cex=0.8, col="grey20", xlab="Growth rate (mg d-1) in hybrids",
+     ylab="BPH of fruit number")
+(cor.test(tabhyb$GR, tabhyb$BPH_GR)$estimate)^2
+
+plot(tabhyb$Fruit, tabhyb$MPH_Fruit, pch=16, cex=0.8, col="grey20", xlab="Fruit number in hybrids",
+     ylab="MPH of fruit number")
+(cor.test(tabhyb$Fruit, tabhyb$MPH_Fruit)$estimate)^2
+
+plot(tabhyb$Fruit, tabhyb$BPH_Fruit, pch=16, cex=0.8, col="grey20", xlab="Fruit number in hybrids",
+     ylab="BPH of fruit number")
+(cor.test(tabhyb$Fruit, tabhyb$BPH_Fruit)$estimate)^2
+
+dev.off()
 
 
