@@ -10,8 +10,8 @@ Identifier numbers are 1001 genomes identifiers (http://1001genomes.org/).
 Detailed protocol for trait measurement can be found in "Image-based methods for phenotyping growth dynamics and fitness in Arabidopsis thaliana" (https://doi.org/10.1101/208512).
 
 Units of traits measured:
-- Lifespan: duration in days between the emergence of the first two leaves and the end of reproduction
+- AgeAtReproduction : duration (days) between the emergence of the first two leaves and the end of reproduction, when fruits are drying
 - FruitNumber: total number of fruits (siliques) per individual, measured at the end of reproduction
 - GrowthRate: Average growth rate (mg d-1), measured as the ratio of final rosette dry mass over plant lifespan
-- VegetativeDryMass: rosette dry mass measured at the growth inflection point (when growth rate is maximum), which was estimated by fitting a sigmoid growth curve on plant dry mass over time.
+- VegetativeDryMass: rosette dry mass (mg) measured at the growth inflection point (when growth rate is maximum), which was estimated by fitting a sigmoid growth curve on plant dry mass over time.
  
